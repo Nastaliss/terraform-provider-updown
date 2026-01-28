@@ -162,7 +162,7 @@ func checkCreate(d *schema.ResourceData, meta interface{}) error {
 
 	check, _, err := client.Check.Add(constructCheckPayload(d))
 	if err != nil {
-		return fmt.Errorf("creating check with the API")
+		return fmt.Errorf("creating check with the API: %w", err)
 	}
 
 	d.SetId(check.Token)
@@ -175,7 +175,7 @@ func checkRead(d *schema.ResourceData, meta interface{}) error {
 	check, _, err := client.Check.Get(d.Id())
 
 	if err != nil {
-		return fmt.Errorf("reading check from the API")
+		return fmt.Errorf("reading check from the API: %w", err)
 	}
 
 	for k, v := range map[string]interface{}{
@@ -204,7 +204,7 @@ func checkUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	_, _, err := client.Check.Update(d.Id(), constructCheckPayload(d))
 	if err != nil {
-		return fmt.Errorf("updating check with the API")
+		return fmt.Errorf("updating check with the API: %w", err)
 	}
 
 	return nil
@@ -215,7 +215,7 @@ func checkDelete(d *schema.ResourceData, meta interface{}) error {
 	checkDeleted, _, err := client.Check.Remove(d.Id())
 
 	if err != nil {
-		return fmt.Errorf("removing check from the API")
+		return fmt.Errorf("removing check from the API: %w", err)
 	}
 
 	if !checkDeleted {

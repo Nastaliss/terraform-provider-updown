@@ -58,7 +58,7 @@ func webhookRead(d *schema.ResourceData, meta interface{}) error {
 	webhooks, _, err := client.Webhook.List()
 
 	if err != nil {
-		return fmt.Errorf("reading webhooks from the API")
+		return fmt.Errorf("reading webhooks from the API: %w", err)
 	}
 
 	for _, w := range webhooks {
@@ -81,7 +81,7 @@ func webhookDelete(d *schema.ResourceData, meta interface{}) error {
 	webhookDeleted, _, err := client.Webhook.Remove(d.Id())
 
 	if err != nil {
-		return fmt.Errorf("removing webhook from the API")
+		return fmt.Errorf("removing webhook from the API: %w", err)
 	}
 
 	if !webhookDeleted {

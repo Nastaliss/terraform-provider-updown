@@ -55,7 +55,7 @@ func recipientCreate(d *schema.ResourceData, meta interface{}) error {
 
 	recipient, _, err := client.Recipient.Add(constructRecipientPayload(d))
 	if err != nil {
-		return fmt.Errorf("creating Recipient with the API")
+		return fmt.Errorf("creating Recipient with the API: %w", err)
 	}
 
 	d.SetId(recipient.ID)
@@ -68,7 +68,7 @@ func recipientRead(d *schema.ResourceData, meta interface{}) error {
 	recipients, _, err := client.Recipient.List()
 
 	if err != nil {
-		return fmt.Errorf("reading recipients from the API")
+		return fmt.Errorf("reading recipients from the API: %w", err)
 	}
 
 	for _, r := range recipients {
@@ -92,7 +92,7 @@ func recipientDelete(d *schema.ResourceData, meta interface{}) error {
 	RecipientDeleted, _, err := client.Recipient.Remove(d.Id())
 
 	if err != nil {
-		return fmt.Errorf("removing Recipient from the API")
+		return fmt.Errorf("removing Recipient from the API: %w", err)
 	}
 
 	if !RecipientDeleted {
