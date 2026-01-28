@@ -54,4 +54,4 @@ snapshot:
   name_template: '{{ .Tag }}-{{ .ShortCommit }}'
 
 changelog:
-  skip: true
+  disable: true
