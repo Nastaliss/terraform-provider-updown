@@ -1,6 +1,6 @@
 module github.com/mvisonneau/terraform-provider-updown
 
-go 1.17
+go 1.23
 
 require (
 	github.com/antoineaugusti/updown v0.0.0-20190412074625-d590ab97f115
@@ -48,4 +48,4 @@ require (
 	google.golang.org/protobuf v1.28.0 // indirect
 )
 
-replace github.com/antoineaugusti/updown => github.com/mvisonneau/updown v0.0.0-20220307193849-f461ed2584fd
+replace github.com/antoineaugusti/updown => github.com/Nastaliss/updown v0.0.0-20260128112809-0702c297dbf4
