@@ -10,12 +10,12 @@ OS_ARCH             := linux_amd64
 .PHONY: setup
 setup: ## Install required libraries/tools for build tasks
 	@command -v goimports 2>&1 >/dev/null    || go install golang.org/x/tools/cmd/goimports@latest
-	@command -v gosec 2>&1 >/dev/null        || go install github.com/securego/gosec/v2/cmd/gosec@v2.9.6
+	@command -v gosec 2>&1 >/dev/null        || go install github.com/securego/gosec/v2/cmd/gosec@latest
 	@command -v goveralls 2>&1 >/dev/null    || go install github.com/mattn/goveralls@latest
-	@command -v ineffassign 2>&1 >/dev/null  || go install github.com/gordonklaus/ineffassign@v0.0.0-20210914165742-4cc7213b9bc8
-	@command -v misspell 2>&1 >/dev/null     || go install github.com/client9/misspell/cmd/misspell@v0.3.4
-	@command -v revive 2>&1 >/dev/null       || go install github.com/mgechev/revive@v1.1.3
-	@command -v tfplugindocs 2>&1 >/dev/null || go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.4.0
+	@command -v ineffassign 2>&1 >/dev/null  || go install github.com/gordonklaus/ineffassign@latest
+	@command -v misspell 2>&1 >/dev/null     || go install github.com/client9/misspell/cmd/misspell@latest
+	@command -v revive 2>&1 >/dev/null       || go install github.com/mgechev/revive@latest
+	@command -v tfplugindocs 2>&1 >/dev/null || go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest
 
 .PHONY: fmt
 fmt: setup ## Format source code
