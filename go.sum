@@ -1,8 +1,8 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/Nastaliss/updown v0.0.0-20260128112809-0702c297dbf4 h1:nGkJDe4GJ6nZpjULOh+UmE6cGBDPmRYpZzf9Kw8VFDc=
-github.com/Nastaliss/updown v0.0.0-20260128112809-0702c297dbf4/go.mod h1:AB4rMVSxpcFtyCcgqfhuM39KhiuXYZ3BYr0GG/HMywQ=
+github.com/Nastaliss/updown v0.0.0-20260128134926-d123ce1cfd7e h1:zkuZID4YCyaA5ekYMdGcT5/kcFHqYkVkS8klKsO0RW8=
+github.com/Nastaliss/updown v0.0.0-20260128134926-d123ce1cfd7e/go.mod h1:uptnZHfR6jOTeGP+Co0xYpMvJGP9F43wLUcqDZsOYZM=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/agext/levenshtein v1.2.3 h1:YB2fHEn0UJagG8T1rrWknE3ZQzWM06O8AMAatNn7lmo=
 github.com/agext/levenshtein v1.2.3/go.mod h1:JEDfjyjHDjOF/1e4FlBE/PkbqA9OfWu2ki2W0IB5558=

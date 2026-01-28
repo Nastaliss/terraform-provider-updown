@@ -1,6 +1,6 @@
 NAME                := terraform-provider-updown
 VERSION             := $(shell git describe --tags --abbrev=1)
-FILES               := $(shell git ls-files 'updown/*.go')
+FILES               := $(shell git ls-files '*.go' 'internal/**/*.go')
 DEV_REPOSITORY_PATH := local.dev/mvisonneau/updown
 DEV_VERSION         := 0.0.1
 OS_ARCH             := linux_amd64

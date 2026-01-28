@@ -48,4 +48,4 @@ require (
 	google.golang.org/protobuf v1.28.0 // indirect
 )
 
-replace github.com/antoineaugusti/updown => github.com/Nastaliss/updown v0.0.0-20260128112809-0702c297dbf4
+replace github.com/antoineaugusti/updown => github.com/Nastaliss/updown v0.0.0-20260128134926-d123ce1cfd7e
