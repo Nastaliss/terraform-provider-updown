@@ -24,16 +24,18 @@ resource "updown_recipient" "myrecipient" {
 
 ### Required
 
-- **type** (String) Type of recipient ('email', 'sms', 'webhook' or 'slack_compatible' only). The other integrations (slack, telegram, zapier, statuspage, etc.) require the web UI to setup.
-- **value** (String) The recipient value (email address, phone number or URL)
+- `type` (String) Type of recipient ('email', 'sms', 'webhook' or 'slack_compatible' only). The other integrations (slack, telegram, zapier, statuspage, etc.) require the web UI to setup.
+- `value` (String) The recipient value (email address, phone number or URL)
 
-### Optional
+### Read-Only
 
-- **id** (String) The ID of this resource.
+- `id` (String) The ID of this resource.
 
 ## Import
 
 Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
 # You can find the corresponding IDs by looking at the following API endpoint:

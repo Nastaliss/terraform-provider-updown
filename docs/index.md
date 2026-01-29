@@ -22,4 +22,4 @@ provider "updown" {
 
 ### Optional
 
-- **api_key** (String) API key to use in order to authenticated against updown.io API.
+- `api_key` (String) API key to use in order to authenticated against updown.io API.

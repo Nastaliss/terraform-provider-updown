@@ -3,6 +3,7 @@ package provider
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Nastaliss/terraform-provider-updown/internal/updown"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -83,6 +84,12 @@ func checkResource() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+			"type": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "Type of check (http, https, icmp, tcp, tcps). Auto-detected from URL scheme if not set.",
+			},
 			"custom_headers": {
 				Type:        schema.TypeMap,
 				Optional:    true,
@@ -95,11 +102,38 @@ func checkResource() *schema.Resource {
 	}
 }
 
+// setToStringSlice converts a *schema.Set to a string slice.
+func setToStringSlice(s *schema.Set) []string {
+	items := s.List()
+	result := make([]string, len(items))
+	for i, v := range items {
+		result[i] = v.(string)
+	}
+	return result
+}
+
+// detectCheckType returns the check type based on the URL scheme.
+func detectCheckType(url string) string {
+	if strings.HasPrefix(url, "tcps://") {
+		return "tcps"
+	}
+	if strings.HasPrefix(url, "tcp://") {
+		return "tcp"
+	}
+	return ""
+}
+
 func constructCheckPayload(d *schema.ResourceData) updown.CheckItem {
 	payload := updown.CheckItem{}
 
 	if v, ok := d.GetOk("url"); ok {
 		payload.URL = v.(string)
+	}
+
+	if v, ok := d.GetOk("type"); ok {
+		payload.Type = v.(string)
+	} else if payload.URL != "" {
+		payload.Type = detectCheckType(payload.URL)
 	}
 
 	if v, ok := d.GetOk("period"); ok {
@@ -131,21 +165,11 @@ func constructCheckPayload(d *schema.ResourceData) updown.CheckItem {
 	}
 
 	if v, ok := d.GetOk("disabled_locations"); ok {
-		interfaceSlice := v.(*schema.Set).List()
-		var stringSlice []string
-		for s := range interfaceSlice {
-			stringSlice = append(stringSlice, interfaceSlice[s].(string))
-		}
-		payload.DisabledLocations = stringSlice
+		payload.DisabledLocations = setToStringSlice(v.(*schema.Set))
 	}
 
 	if v, ok := d.GetOk("recipients"); ok {
-		interfaceSlice := v.(*schema.Set).List()
-		var stringSlice []string
-		for s := range interfaceSlice {
-			stringSlice = append(stringSlice, interfaceSlice[s].(string))
-		}
-		payload.RecipientIDs = stringSlice
+		payload.RecipientIDs = setToStringSlice(v.(*schema.Set))
 	}
 
 	if m, ok := d.GetOk("custom_headers"); ok {
@@ -181,6 +205,7 @@ func checkRead(d *schema.ResourceData, meta interface{}) error {
 
 	for k, v := range map[string]interface{}{
 		"url":                check.URL,
+		"type":               check.Type,
 		"period":             check.Period,
 		"apdex_t":            check.Apdex,
 		"enabled":            check.Enabled,
@@ -208,7 +233,7 @@ func checkUpdate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("updating check with the API: %w", err)
 	}
 
-	return nil
+	return checkRead(d, meta)
 }
 
 func checkDelete(d *schema.ResourceData, meta interface{}) error {

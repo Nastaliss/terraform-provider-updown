@@ -42,25 +42,31 @@ resource "updown_check" "mywebsite" {
 
 ### Required
 
-- **url** (String) The URL you want to monitor.
+- `url` (String) The URL you want to monitor.
 
 ### Optional
 
-- **alias** (String) Human readable name.
-- **apdex_t** (Number) APDEX threshold in seconds (0.125, 0.25, 0.5, 1.0 or 2.0).
-- **custom_headers** (Map of String) The HTTP headers you want in requests.
-- **disabled_locations** (Set of String) Disabled monitoring locations. It's a lsit of abbreviated location names.
-- **enabled** (Boolean) Is the check enabled (true or false).
-- **id** (String) The ID of this resource.
-- **mute_until** (String) Mute notifications until given time, accepts a time, 'recovery' or 'forever'.
-- **period** (Number) Interval in seconds (15, 30, 60, 120, 300, 600, 1800 or 3600).
-- **published** (Boolean) Shall the status page be public (true or false).
-- **recipients** (Set of String) Selected alert recipients. It's an array of recipient IDs you can get from the recipients API.
-- **string_match** (String) Search for this string in the page.
+- `alias` (String) Human readable name.
+- `apdex_t` (Number) APDEX threshold in seconds (0.125, 0.25, 0.5, 1.0 or 2.0).
+- `custom_headers` (Map of String) The HTTP headers you want in requests.
+- `disabled_locations` (Set of String) Disabled monitoring locations. It's a lsit of abbreviated location names.
+- `enabled` (Boolean) Is the check enabled (true or false).
+- `mute_until` (String) Mute notifications until given time, accepts a time, 'recovery' or 'forever'.
+- `period` (Number) Interval in seconds (15, 30, 60, 120, 300, 600, 1800 or 3600).
+- `published` (Boolean) Shall the status page be public (true or false).
+- `recipients` (Set of String) Selected alert recipients. It's an array of recipient IDs you can get from the recipients API.
+- `string_match` (String) Search for this string in the page.
+- `type` (String) Type of check (http, https, icmp, tcp, tcps). Auto-detected from URL scheme if not set.
+
+### Read-Only
+
+- `id` (String) The ID of this resource.
 
 ## Import
 
 Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
 # The check_id is basically whatever 4 characters you have after https://updown.io/
