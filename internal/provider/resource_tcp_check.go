@@ -1,3 +1,4 @@
+// Package provider implements the Terraform provider for updown.io.
 package provider
 
 import (
