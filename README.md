@@ -1,15 +1,15 @@
 # terraform-provider-updown
 
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/mvisonneau/gitlab-ci-pipelines-exporter)](https://pkg.go.dev/mod/github.com/mvisonneau/gitlab-ci-pipelines-exporter)
-[![Go Report Card](https://goreportcard.com/badge/github.com/mvisonneau/gitlab-ci-pipelines-exporter)](https://goreportcard.com/report/github.com/mvisonneau/gitlab-ci-pipelines-exporter)
-[![test](https://github.com/mvisonneau/gitlab-ci-pipelines-exporter/actions/workflows/test.yml/badge.svg)](https://github.com/mvisonneau/gitlab-ci-pipelines-exporter/actions/workflows/test.yml)
-[![release](https://github.com/mvisonneau/gitlab-ci-pipelines-exporter/actions/workflows/release.yml/badge.svg)](https://github.com/mvisonneau/gitlab-ci-pipelines-exporter/actions/workflows/release.yml)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/Nastaliss/terraform-provider-updown)](https://pkg.go.dev/mod/github.com/Nastaliss/terraform-provider-updown)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Nastaliss/terraform-provider-updown)](https://goreportcard.com/report/github.com/Nastaliss/terraform-provider-updown)
+[![test](https://github.com/Nastaliss/terraform-provider-updown/actions/workflows/test.yml/badge.svg)](https://github.com/Nastaliss/terraform-provider-updown/actions/workflows/test.yml)
+[![release](https://github.com/Nastaliss/terraform-provider-updown/actions/workflows/release.yml/badge.svg)](https://github.com/Nastaliss/terraform-provider-updown/actions/workflows/release.yml)
 
 Terraform provider for [updown.io](https://updown.io)
 
 ## Docs
 
-https://registry.terraform.io/providers/mvisonneau/updown/latest/docs
+https://registry.terraform.io/providers/Nastaliss/updown/latest/docs
 
 ## Resources
 
@@ -18,7 +18,7 @@ https://registry.terraform.io/providers/mvisonneau/updown/latest/docs
 | **data** |`updown_nodes`| Returns the list of testing nodes ipv4 and ipv6 addresses |
 | **resource** |`updown_check`| Creates a check |
 | **resource** |`updown_recipient`| Creates a recipient |
-| **resource** |`updown_webhook`| Creates a webhook _(DEPRECATED)_ |
+| **resource** |`updown_tcp_check`| Creates a TCP/TCPS check |
 
 ## Example usage
 
@@ -27,7 +27,7 @@ https://registry.terraform.io/providers/mvisonneau/updown/latest/docs
 terraform {
   required_providers {
     updown = {
-      source = "mvisonneau/updown"
+      source = "Nastaliss/updown"
     }
   }
 }
@@ -68,9 +68,12 @@ resource "updown_check" "mywebsite" {
   }
 }
 
-# Add a webhook (DEPRECATED)
-resource "updown_webhook" "mywebhook" {
-  url = "https://my-nice-webhook.com"
+# Create a TCP check
+resource "updown_tcp_check" "my_database" {
+  alias   = "PostgreSQL Database"
+  url     = "tcp://db.example.com:5432"
+  period  = 60
+  enabled = true
 }
 
 # Output ipv4 and ipv6 nodes addresses list
@@ -88,9 +91,9 @@ output "updown_nodes_ipv6" {
 ## Building the provider
 
 ```bash
-~$ export PROVIDER_PATH=${GOPATH}/src/github.com/mvisonneau/terraform-provider-updown
+~$ export PROVIDER_PATH=${GOPATH}/src/github.com/Nastaliss/terraform-provider-updown
 ~$ mkdir -p ${PROVIDER_PATH}; cd ${PROVIDER_PATH}
-~$ git clone git@github.com:mvisonneau/terraform-provider-updown .
+~$ git clone git@github.com:Nastaliss/terraform-provider-updown .
 ~$ make install
 ```
 
