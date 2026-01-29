@@ -1,155 +1,205 @@
 package updown
 
 import (
-	"net"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net/http"
-	"os"
+	"net/http/httptest"
+	"net/url"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-const TQToken = "s7su"
+// setup creates a test HTTP server, a Client configured to talk to it, and a
+// teardown function that must be called when the test is done.
+func setup() (mux *http.ServeMux, client *Client, teardown func()) {
+	mux = http.NewServeMux()
+	server := httptest.NewServer(mux)
 
-func newClient() *Client {
-	apiKey := os.Getenv("UPDOWN_API_KEY")
-	if apiKey == "" {
-		panic("API key is not set")
+	client = NewClient("test-api-key", nil)
+	u, _ := url.Parse(server.URL + "/")
+	client.BaseURL = u
+
+	return mux, client, server.Close
+}
+
+// writeJSON writes a JSON response with the given status code and body string.
+func writeJSON(w http.ResponseWriter, status int, body string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	fmt.Fprint(w, body)
+}
+
+func TestNewClient_Defaults(t *testing.T) {
+	c := NewClient("my-key", nil)
+
+	assert.Equal(t, "https://updown.io/api/", c.BaseURL.String())
+	assert.Equal(t, "Go Updown v0.3", c.UserAgent)
+	assert.Equal(t, "my-key", c.APIKey)
+	assert.NotNil(t, c.Check)
+	assert.NotNil(t, c.Downtime)
+	assert.NotNil(t, c.Metric)
+	assert.NotNil(t, c.Node)
+	assert.NotNil(t, c.Recipient)
+}
+
+func TestNewClient_CustomHTTPClient(t *testing.T) {
+	custom := &http.Client{}
+	c := NewClient("key", custom)
+
+	assert.Equal(t, custom, c.client)
+}
+
+func TestNewRequest_GET(t *testing.T) {
+	c := NewClient("my-key", nil)
+
+	req, err := c.NewRequest("GET", "checks", nil)
+	require.NoError(t, err)
+
+	assert.Equal(t, "https://updown.io/api/checks", req.URL.String())
+	assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json", req.Header.Get("Accept"))
+	assert.Equal(t, "Go Updown v0.3", req.Header.Get("User-Agent"))
+	assert.Equal(t, "my-key", req.Header.Get("X-API-KEY"))
+}
+
+func TestNewRequest_POST_WithBody(t *testing.T) {
+	c := NewClient("key", nil)
+
+	body := CheckItem{URL: "https://example.com", Period: 60}
+	req, err := c.NewRequest("POST", "checks", body)
+	require.NoError(t, err)
+
+	var decoded CheckItem
+	err = json.NewDecoder(req.Body).Decode(&decoded)
+	require.NoError(t, err)
+	assert.Equal(t, "https://example.com", decoded.URL)
+	assert.Equal(t, 60, decoded.Period)
+}
+
+func TestNewRequest_InvalidURL(t *testing.T) {
+	c := NewClient("key", nil)
+
+	_, err := c.NewRequest("GET", ":%invalid", nil)
+	assert.Error(t, err)
+}
+
+func TestDo_Success(t *testing.T) {
+	mux, client, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/checks", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusOK, `[{"token":"abc","url":"https://example.com"}]`)
+	})
+
+	req, _ := client.NewRequest("GET", "checks", nil)
+	var checks []Check
+	resp, err := client.Do(req, &checks)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Len(t, checks, 1)
+	assert.Equal(t, "abc", checks[0].Token)
+}
+
+func TestDo_WriterInterface(t *testing.T) {
+	mux, client, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/raw", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, "raw body content")
+	})
+
+	req, _ := client.NewRequest("GET", "raw", nil)
+	var buf bytes.Buffer
+	resp, err := client.Do(req, &buf)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "raw body content", buf.String())
+}
+
+func TestDo_HTTPError(t *testing.T) {
+	mux, client, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/fail", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusInternalServerError, `{"message":"server error"}`)
+	})
+
+	req, _ := client.NewRequest("GET", "fail", nil)
+	resp, err := client.Do(req, nil)
+
+	assert.Error(t, err)
+	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+	assert.IsType(t, &ErrorResponse{}, err)
+}
+
+func TestDo_NilV(t *testing.T) {
+	mux, client, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/empty", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req, _ := client.NewRequest("GET", "empty", nil)
+	resp, err := client.Do(req, nil)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func TestCheckResponse_2xx(t *testing.T) {
+	resp := &http.Response{StatusCode: http.StatusOK}
+	assert.NoError(t, CheckResponse(resp))
+
+	resp = &http.Response{StatusCode: 299}
+	assert.NoError(t, CheckResponse(resp))
+}
+
+func TestCheckResponse_4xx(t *testing.T) {
+	body := `{"message":"not found"}`
+	resp := &http.Response{
+		StatusCode: http.StatusNotFound,
+		Body:       ioutil.NopCloser(bytes.NewBufferString(body)),
+		Request:    &http.Request{Method: "GET", URL: &url.URL{Path: "/checks/abc"}},
 	}
-	return NewClient(apiKey, nil)
+
+	err := CheckResponse(resp)
+	assert.Error(t, err)
+	errResp, ok := err.(*ErrorResponse)
+	assert.True(t, ok)
+	assert.Equal(t, http.StatusNotFound, errResp.Response.StatusCode)
 }
 
-func TestTokenForAlias(t *testing.T) {
-	client := newClient()
-	// Cache miss + alias not found
-	token, err := client.Check.TokenForAlias("foo")
-	assert.Equal(t, "", token)
-	assert.Equal(t, ErrTokenNotFound, err)
-
-	// - Cache miss + match found after request
-	// - Cache hit
-	for i := 0; i < 2; i++ {
-		token, err = client.Check.TokenForAlias("Teen Quotes")
-		assert.Nil(t, err)
-		assert.Equal(t, TQToken, token)
-	}
-}
-
-func TestList(t *testing.T) {
-	client := newClient()
-	checks, resp, _ := client.Check.List()
-
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.True(t, len(checks) > 0)
-	found := false
-	for _, element := range checks {
-		if element.Alias == "Teen Quotes" {
-			found = true
-			break
-		}
-	}
-	assert.True(t, found, "Cannot found the Teen Quotes check")
-}
-
-func TestGet(t *testing.T) {
-	client := newClient()
-	check, resp, _ := client.Check.Get(TQToken)
-
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, "Teen Quotes", check.Alias)
-
-	check, resp, err := client.Check.Get("aaaaaa")
-	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
-	assert.Equal(t, "GET https://updown.io/api/checks/aaaaaa: 404 ", err.Error())
-}
-
-func TestListDowntimes(t *testing.T) {
-	client := newClient()
-	// Page should be set to 1 automatically
-	downs, resp, _ := client.Downtime.List(TQToken, -1)
-
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.True(t, len(downs) > 1)
-
-	// Page with no downtimes
-	downs, resp, _ = client.Downtime.List(TQToken, 200)
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, 0, len(downs))
-}
-
-func TestAddUpdateRemoveCheck(t *testing.T) {
-	client := newClient()
-	res, resp, _ := client.Check.Add(CheckItem{URL: "https://google.fr"})
-	assert.Equal(t, http.StatusCreated, resp.StatusCode)
-	assert.Equal(t, "https://google.fr", res.URL)
-
-	res, resp, _ = client.Check.Update(res.Token, CheckItem{URL: "https://google.com"})
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, "https://google.com", res.URL)
-
-	result, resp, _ := client.Check.Remove(res.Token)
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.True(t, result)
-}
-
-func TestListMetrics(t *testing.T) {
-	client := newClient()
-	now := time.Now()
-	timeFormat := "2006-01-02 15:04:05 -0700"
-	from, to := now.AddDate(0, 0, -1).Format(timeFormat), now.Format(timeFormat)
-	metricRes, resp, _ := client.Metric.List(TQToken, "host", from, to)
-
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	for _, location := range updownLocations() {
-		assert.Contains(t, metricRes, location)
-	}
-	assert.True(t, len(metricRes) > 1)
-}
-
-func TestListNodes(t *testing.T) {
-	client := newClient()
-	nodeRes, resp, _ := client.Node.List()
-
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	for _, location := range updownLocations() {
-		assert.Contains(t, nodeRes, location)
-	}
-	assert.True(t, len(nodeRes) > 1)
-}
-
-func TestListIPv4(t *testing.T) {
-	client := newClient()
-	IPs, resp, _ := client.Node.ListIPv4()
-
-	for _, ip := range IPs {
-		assert.True(t, isIPv4(net.ParseIP(ip)))
+func TestCheckResponse_EmptyBody(t *testing.T) {
+	resp := &http.Response{
+		StatusCode: http.StatusBadRequest,
+		Body:       ioutil.NopCloser(bytes.NewBufferString("")),
+		Request:    &http.Request{Method: "GET", URL: &url.URL{Path: "/checks"}},
 	}
 
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, len(IPs), len(updownLocations()))
+	err := CheckResponse(resp)
+	assert.Error(t, err)
+	assert.IsType(t, &ErrorResponse{}, err)
 }
 
-func TestListIPv6(t *testing.T) {
-	client := newClient()
-	IPs, resp, _ := client.Node.ListIPv6()
-
-	for _, ip := range IPs {
-		assert.True(t, isIPv6(net.ParseIP(ip)))
+func TestErrorResponse_Error(t *testing.T) {
+	u, _ := url.Parse("https://updown.io/api/checks/abc")
+	errResp := &ErrorResponse{
+		Response: &http.Response{
+			StatusCode: 404,
+			Request:    &http.Request{Method: "GET", URL: u},
+		},
+		Message: "not found",
 	}
 
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, len(IPs), len(updownLocations()))
-}
-
-func updownLocations() []string {
-	return []string{"lan", "mia", "bhs", "gra", "fra", "sin", "tok", "syd"}
-}
-
-func isIPv4(ip net.IP) bool {
-	return ip.To4().String() == ip.String()
-}
-
-func isIPv6(ip net.IP) bool {
-	return ip.To16().String() == ip.String()
+	expected := "GET https://updown.io/api/checks/abc: 404 not found"
+	assert.Equal(t, expected, errResp.Error())
 }
