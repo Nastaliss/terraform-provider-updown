@@ -5,9 +5,15 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
 
     steps:
       - name: Checkout
@@ -41,3 +47,43 @@ jobs:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install ORAS CLI
+        uses: oras-project/setup-oras@v1
+
+      - name: Login to GHCR
+        run: oras login ghcr.io -u ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push OCI artifacts
+        run: |
+          set -euo pipefail
+
+          VERSION="${GITHUB_REF_NAME#v}"
+          REGISTRY="ghcr.io/nastaliss/opentofu-providers/nastaliss/updown"
+          DIGESTS=()
+
+          for zip in dist/terraform-provider-updown_${VERSION}_*.zip; do
+            [ -f "$zip" ] || continue
+            filename=$(basename "$zip" .zip)
+            # Parse os and arch from: terraform-provider-updown_VERSION_OS_ARCH
+            os=$(echo "$filename" | rev | cut -d'_' -f2 | rev)
+            arch=$(echo "$filename" | rev | cut -d'_' -f1 | rev)
+
+            echo "Pushing platform manifest for ${os}/${arch}..."
+            digest=$(oras push \
+              "${REGISTRY}" \
+              --artifact-type "application/vnd.opentofu.provider-target" \
+              "${zip}:application/zip" \
+              --artifact-platform "${os}/${arch}" \
+              --format json | jq -r '.reference' | cut -d'@' -f2)
+            DIGESTS+=("${REGISTRY}@${digest}")
+            echo "  -> ${digest}"
+          done
+
+          echo "Creating multi-platform index with ${#DIGESTS[@]} platforms..."
+          oras manifest index create \
+            "${REGISTRY}:${VERSION}" \
+            --annotation "artifactType=application/vnd.opentofu.provider" \
+            "${DIGESTS[@]}"
+
+          echo "Published ${REGISTRY}:${VERSION}"
