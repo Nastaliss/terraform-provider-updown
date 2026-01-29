@@ -75,7 +75,7 @@ jobs:
               --artifact-type "application/vnd.opentofu.provider-target" \
               --config /dev/null:application/vnd.oci.empty.v1+json \
               "${zip}:application/zip" \
-              --platform "${os}/${arch}" \
+              --artifact-platform "${os}/${arch}" \
               --format json | jq -r '.reference' | cut -d'@' -f2)
             DIGESTS+=("${REGISTRY}@${digest}")
             echo "  -> ${digest}"
