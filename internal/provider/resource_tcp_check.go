@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/antoineaugusti/updown"
+	"github.com/Nastaliss/terraform-provider-updown/internal/updown"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
