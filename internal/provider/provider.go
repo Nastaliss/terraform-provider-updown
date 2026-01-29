@@ -27,6 +27,7 @@ func New() func() *schema.Provider {
 			ResourcesMap: map[string]*schema.Resource{
 				"updown_check":     checkResource(),
 				"updown_pulse":     pulseResource(),
+				"updown_tcp_check": tcpCheckResource(),
 				"updown_webhook":   webhookResource(),
 				"updown_recipient": recipientResource(),
 			},
