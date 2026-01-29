@@ -1,3 +1,4 @@
+// Package updown provides a Go client for the updown.io monitoring API.
 package updown
 
 import (
@@ -21,7 +22,7 @@ type DowntimeService struct {
 
 // List lists all known downtimes for a check
 func (s *DowntimeService) List(token string, pageNb int) ([]Downtime, *http.Response, error) {
-	path := fmt.Sprintf("checks/%s/downtimes?page=%s", token, strconv.Itoa(max(1, pageNb)))
+	path := fmt.Sprintf("checks/%s/downtimes?page=%s", token, strconv.Itoa(maxInt(1, pageNb)))
 	req, err := s.client.NewRequest("GET", path, nil)
 	if err != nil {
 		return nil, nil, err
@@ -36,7 +37,7 @@ func (s *DowntimeService) List(token string, pageNb int) ([]Downtime, *http.Resp
 	return res, resp, err
 }
 
-func max(a, b int) int {
+func maxInt(a, b int) int {
 	if a > b {
 		return a
 	}

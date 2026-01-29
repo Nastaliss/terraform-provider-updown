@@ -1,3 +1,4 @@
+// Package updown provides a Go client for the updown.io monitoring API.
 package updown
 
 import (

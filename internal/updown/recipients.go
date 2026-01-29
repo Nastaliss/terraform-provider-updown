@@ -1,3 +1,4 @@
+// Package updown provides a Go client for the updown.io monitoring API.
 package updown
 
 import (
@@ -10,11 +11,11 @@ type RecipientType string
 
 // Recipient types
 const (
-	RecipientTypeEmail          RecipientType = "email"
-	RecipientTypeSMS            RecipientType = "sms"
-	RecipientTypeWebhook        RecipientType = "webhook"
+	RecipientTypeEmail           RecipientType = "email"
+	RecipientTypeSMS             RecipientType = "sms"
+	RecipientTypeWebhook         RecipientType = "webhook"
 	RecipientTypeSlackCompatible RecipientType = "slack_compatible"
-	RecipientTypeMSTeams        RecipientType = "msteams"
+	RecipientTypeMSTeams         RecipientType = "msteams"
 )
 
 // Recipient represents a recipient/channel for alerts
