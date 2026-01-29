@@ -32,7 +32,7 @@ func TestNodeService_List_Error(t *testing.T) {
 	mux, client, teardown := setup()
 	defer teardown()
 
-	mux.HandleFunc("/nodes", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/nodes", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, `{"message":"server error"}`)
 	})
 

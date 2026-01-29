@@ -52,7 +52,7 @@ func TestMetricService_List_Error(t *testing.T) {
 	mux, client, teardown := setup()
 	defer teardown()
 
-	mux.HandleFunc("/checks/abc/metrics", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/checks/abc/metrics", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, `{"message":"server error"}`)
 	})
 

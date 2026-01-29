@@ -35,7 +35,7 @@ func TestCheckService_List_Error(t *testing.T) {
 	mux, client, teardown := setup()
 	defer teardown()
 
-	mux.HandleFunc("/checks", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/checks", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, `{"message":"internal error"}`)
 	})
 
@@ -64,7 +64,7 @@ func TestCheckService_Get_NotFound(t *testing.T) {
 	mux, client, teardown := setup()
 	defer teardown()
 
-	mux.HandleFunc("/checks/missing", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/checks/missing", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusNotFound, `{"message":"not found"}`)
 	})
 
@@ -135,7 +135,7 @@ func TestCheckService_Remove_NotFound(t *testing.T) {
 	mux, client, teardown := setup()
 	defer teardown()
 
-	mux.HandleFunc("/checks/missing", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/checks/missing", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusNotFound, `{"message":"not found"}`)
 	})
 
@@ -148,7 +148,7 @@ func TestCheckService_TokenForAlias_Found(t *testing.T) {
 	mux, client, teardown := setup()
 	defer teardown()
 
-	mux.HandleFunc("/checks", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/checks", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, `[
 			{"token":"t1","alias":"Site A"},
 			{"token":"t2","alias":"Site B"}
@@ -164,7 +164,7 @@ func TestCheckService_TokenForAlias_NotFound(t *testing.T) {
 	mux, client, teardown := setup()
 	defer teardown()
 
-	mux.HandleFunc("/checks", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/checks", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, `[{"token":"t1","alias":"Site A"}]`)
 	})
 
@@ -178,7 +178,7 @@ func TestCheckService_TokenForAlias_Cached(t *testing.T) {
 	defer teardown()
 
 	var callCount int64
-	mux.HandleFunc("/checks", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/checks", func(w http.ResponseWriter, _ *http.Request) {
 		atomic.AddInt64(&callCount, 1)
 		writeJSON(w, http.StatusOK, fmt.Sprintf(`[{"token":"t1","alias":"Site A"}]`))
 	})

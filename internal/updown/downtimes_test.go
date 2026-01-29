@@ -61,7 +61,7 @@ func TestDowntimeService_List_Empty(t *testing.T) {
 	mux, client, teardown := setup()
 	defer teardown()
 
-	mux.HandleFunc("/checks/abc/downtimes", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/checks/abc/downtimes", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, `[]`)
 	})
 
@@ -75,7 +75,7 @@ func TestDowntimeService_List_Error(t *testing.T) {
 	mux, client, teardown := setup()
 	defer teardown()
 
-	mux.HandleFunc("/checks/abc/downtimes", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/checks/abc/downtimes", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, `{"message":"server error"}`)
 	})
 

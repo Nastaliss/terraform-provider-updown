@@ -33,7 +33,7 @@ func TestRecipientService_List_Error(t *testing.T) {
 	mux, client, teardown := setup()
 	defer teardown()
 
-	mux.HandleFunc("/recipients", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/recipients", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, `{"message":"server error"}`)
 	})
 
@@ -86,7 +86,7 @@ func TestRecipientService_Remove_NotFound(t *testing.T) {
 	mux, client, teardown := setup()
 	defer teardown()
 
-	mux.HandleFunc("/recipients/missing", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/recipients/missing", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusNotFound, `{"message":"not found"}`)
 	})
 
