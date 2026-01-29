@@ -88,6 +88,22 @@ output "updown_nodes_ipv6" {
 }
 ```
 
+## Using with OpenTofu OCI mirror
+
+This provider is published as an OCI artifact to GitHub Container Registry. To use it with OpenTofu's `oci_mirror` provider installation, add the following to your `~/.terraformrc` (or `~/.tofurc`):
+
+```hcl
+provider_installation {
+  oci_mirror {
+    repository_template = "ghcr.io/nastaliss/opentofu-providers/${namespace}/${type}"
+    include             = ["registry.opentofu.org/nastaliss/*"]
+  }
+  direct {
+    exclude = ["registry.opentofu.org/nastaliss/*"]
+  }
+}
+```
+
 ## Building the provider
 
 ```bash
