@@ -47,10 +47,10 @@ type Client struct {
 	APIKey string
 
 	// Services used for communications with the API
-	Check     CheckService
-	Downtime  DowntimeService
-	Metric    MetricService
-	Node      NodeService
+	Check      CheckService
+	Downtime   DowntimeService
+	Metric     MetricService
+	Node       NodeService
 	Recipient  RecipientService
 	StatusPage StatusPageService
 }
