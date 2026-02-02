@@ -47,7 +47,6 @@ resource "updown_pulse" "frequent_job" {
 ### Optional
 
 - `alias` (String) Human readable name for the pulse check.
-- `apdex_t` (Number) APDEX threshold in seconds (0.125, 0.25, 0.5, 1.0, 2.0, 4.0 or 8.0).
 - `enabled` (Boolean) Is the check enabled (true or false).
 - `mute_until` (String) Mute notifications until given time, accepts a time, 'recovery' or 'forever'.
 - `published` (Boolean) Shall the status page be public (true or false).

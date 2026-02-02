@@ -33,12 +33,6 @@ func pulseResource() *schema.Resource {
 				Required:    true,
 				Description: "Expected interval in seconds between heartbeats (15 to 2678400, i.e., 15 seconds to 31 days).",
 			},
-			"apdex_t": {
-				Type:        schema.TypeFloat,
-				Optional:    true,
-				Description: "APDEX threshold in seconds (0.125, 0.25, 0.5, 1.0, 2.0, 4.0 or 8.0).",
-				Default:     0.5,
-			},
 			"enabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -84,10 +78,6 @@ func constructPulsePayload(d *schema.ResourceData) updown.CheckItem {
 
 	if v, ok := d.GetOk("period"); ok {
 		payload.Period = v.(int)
-	}
-
-	if v, ok := d.GetOk("apdex_t"); ok {
-		payload.Apdex = v.(float64)
 	}
 
 	if v, ok := d.GetOk("enabled"); ok {
@@ -143,7 +133,6 @@ func pulseRead(d *schema.ResourceData, meta interface{}) error {
 	for k, v := range map[string]interface{}{
 		"alias":      check.Alias,
 		"period":     check.Period,
-		"apdex_t":    check.Apdex,
 		"enabled":    check.Enabled,
 		"published":  check.Published,
 		"mute_until": check.MuteUntil,
