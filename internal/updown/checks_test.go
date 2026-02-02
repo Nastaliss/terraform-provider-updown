@@ -144,6 +144,61 @@ func TestCheckService_Remove_NotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
 
+func TestCheckItem_EmptyStringFieldsSerialized(t *testing.T) {
+	item := CheckItem{
+		URL:         "https://example.com",
+		Alias:       "",
+		StringMatch: "",
+		MuteUntil:   "",
+	}
+
+	data, err := json.Marshal(item)
+	require.NoError(t, err)
+
+	var raw map[string]interface{}
+	err = json.Unmarshal(data, &raw)
+	require.NoError(t, err)
+
+	for _, field := range []string{"alias", "string_match", "mute_until"} {
+		val, exists := raw[field]
+		assert.True(t, exists, "field %q must be present in JSON even when empty", field)
+		assert.Equal(t, "", val, "field %q must be an empty string", field)
+	}
+}
+
+func TestCheckService_Update_ClearsOptionalStringFields(t *testing.T) {
+	mux, client, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/checks/abc", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "PUT", r.Method)
+
+		var raw map[string]interface{}
+		err := json.NewDecoder(r.Body).Decode(&raw)
+		require.NoError(t, err)
+
+		for _, field := range []string{"alias", "string_match", "mute_until"} {
+			val, exists := raw[field]
+			assert.True(t, exists, "field %q must be present in request body", field)
+			assert.Equal(t, "", val, "field %q must be an empty string", field)
+		}
+
+		writeJSON(w, http.StatusOK, `{"token":"abc","url":"https://example.com","alias":"","string_match":"","mute_until":""}`)
+	})
+
+	check, resp, err := client.Check.Update("abc", CheckItem{
+		URL:         "https://example.com",
+		Alias:       "",
+		StringMatch: "",
+		MuteUntil:   "",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "", check.Alias)
+	assert.Equal(t, "", check.StringMatch)
+	assert.Equal(t, "", check.MuteUntil)
+}
+
 func TestCheckService_TokenForAlias_Found(t *testing.T) {
 	mux, client, teardown := setup()
 	defer teardown()

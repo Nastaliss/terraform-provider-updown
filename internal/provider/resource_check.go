@@ -152,17 +152,9 @@ func constructCheckPayload(d *schema.ResourceData) updown.CheckItem {
 		payload.Published = v.(bool)
 	}
 
-	if v, ok := d.GetOk("alias"); ok {
-		payload.Alias = v.(string)
-	}
-
-	if v, ok := d.GetOk("string_match"); ok {
-		payload.StringMatch = v.(string)
-	}
-
-	if v, ok := d.GetOk("mute_until"); ok {
-		payload.MuteUntil = v.(string)
-	}
+	payload.Alias = d.Get("alias").(string)
+	payload.StringMatch = d.Get("string_match").(string)
+	payload.MuteUntil = d.Get("mute_until").(string)
 
 	if v, ok := d.GetOk("disabled_locations"); ok {
 		payload.DisabledLocations = setToStringSlice(v.(*schema.Set))
