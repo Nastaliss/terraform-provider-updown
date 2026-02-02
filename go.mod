@@ -1,6 +1,6 @@
 module github.com/Nastaliss/terraform-provider-updown
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.38.1
