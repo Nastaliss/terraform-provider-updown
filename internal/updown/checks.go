@@ -56,11 +56,11 @@ type CheckItem struct {
 	// Shall the status page be public
 	Published bool `json:"published"`
 	// Human readable name
-	Alias string `json:"alias,omitempty"`
+	Alias string `json:"alias"`
 	// Search for this string in the page
-	StringMatch string `json:"string_match,omitempty"`
+	StringMatch string `json:"string_match"`
 	// Mute notifications until given time, accepts a time, 'recovery' or 'forever'
-	MuteUntil string `json:"mute_until,omitempty"`
+	MuteUntil string `json:"mute_until"`
 	// Disabled monitoring locations. It's an array of abbreviated location names
 	DisabledLocations []string `json:"disabled_locations,omitempty"`
 	// Selected alert recipients. It's an array of recipient IDs
