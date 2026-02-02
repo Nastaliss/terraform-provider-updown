@@ -3,6 +3,7 @@ package provider
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Nastaliss/terraform-provider-updown/internal/updown"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -59,9 +60,11 @@ func pulseResource() *schema.Resource {
 				},
 			},
 			"pulse_url": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The URL to POST heartbeats to. Your scheduled job should POST to this URL on each successful run.",
+				Type:     schema.TypeString,
+				Computed: true,
+				Description: "The URL to POST heartbeats to. Your scheduled job should POST to this URL on each successful run. " +
+					"Note: the updown.io API redacts the secret key in GET responses. On import, the provider performs " +
+					"a no-op update to recover the full URL.",
 			},
 		},
 	}
@@ -113,6 +116,7 @@ func pulseCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(check.Token)
+	d.Set("pulse_url", check.URL)
 
 	return pulseRead(d, meta)
 }
@@ -137,11 +141,23 @@ func pulseRead(d *schema.ResourceData, meta interface{}) error {
 		"published":  check.Published,
 		"mute_until": check.MuteUntil,
 		"recipients": check.RecipientIDs,
-		"pulse_url":  check.URL,
 	} {
 		if err := d.Set(k, v); err != nil {
 			return err
 		}
+	}
+
+	// The API redacts the pulse URL secret key on GET requests. If the state
+	// already holds the full URL (from create or a previous update), preserve it.
+	// On import, the state is empty so we attempt a no-op PUT to recover the full
+	// URL, since the API returns it unredacted on write responses.
+	currentURL := d.Get("pulse_url").(string)
+	if currentURL == "" || strings.Contains(currentURL, "<redacted>") {
+		updated, _, err := client.Check.Update(d.Id(), constructPulsePayload(d))
+		if err != nil {
+			return fmt.Errorf("recovering full pulse URL via update: %s", err.Error())
+		}
+		d.Set("pulse_url", updated.URL)
 	}
 
 	return nil
