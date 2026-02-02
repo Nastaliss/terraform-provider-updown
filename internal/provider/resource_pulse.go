@@ -63,8 +63,8 @@ func pulseResource() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 				Description: "The URL to POST heartbeats to. Your scheduled job should POST to this URL on each successful run. " +
-					"Note: the updown.io API redacts the secret key in GET responses. On import, the provider performs " +
-					"a no-op update to recover the full URL.",
+					"Note: the updown.io API redacts the secret key in GET responses. On import, the provider " +
+					"toggles the enabled flag to force a real update and recover the full URL.",
 			},
 		},
 	}
@@ -151,14 +151,33 @@ func pulseRead(d *schema.ResourceData, meta interface{}) error {
 
 	// The API redacts the pulse URL secret key on GET requests. If the state
 	// already holds the full URL (from create or a previous update), preserve it.
-	// On import, the state is empty so we attempt a no-op PUT to recover the full
-	// URL, since the API returns it unredacted on write responses.
+	// On import, the state is empty so we need to recover the full URL.
+	// The updown.io API only returns the unredacted pulse URL when a field
+	// actually changes. Toggle `enabled` to force a real change, capture
+	// the full URL, then restore the original value.
 	currentURL := d.Get("pulse_url").(string)
 	if currentURL == "" || strings.Contains(currentURL, "<redacted>") {
-		updated, _, err := client.Check.Update(d.Id(), constructPulsePayload(d))
+		payload := updown.CheckItem{
+			Type:         check.Type,
+			Period:       check.Period,
+			Enabled:      !check.Enabled,
+			Published:    check.Published,
+			Alias:        check.Alias,
+			StringMatch:  check.StringMatch,
+			MuteUntil:    check.MuteUntil,
+			RecipientIDs: check.RecipientIDs,
+		}
+		updated, _, err := client.Check.Update(d.Id(), payload)
 		if err != nil {
 			return fmt.Errorf("recovering full pulse URL via update: %s", err.Error())
 		}
+
+		// Restore original enabled value.
+		payload.Enabled = check.Enabled
+		if _, _, err := client.Check.Update(d.Id(), payload); err != nil {
+			return fmt.Errorf("restoring enabled flag after pulse URL recovery: %s", err.Error())
+		}
+
 		if err := d.Set("pulse_url", updated.URL); err != nil {
 			return fmt.Errorf("setting pulse_url: %s", err.Error())
 		}
