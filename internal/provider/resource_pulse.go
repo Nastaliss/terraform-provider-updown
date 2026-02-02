@@ -137,7 +137,7 @@ func pulseRead(d *schema.ResourceData, meta interface{}) error {
 		"published":  check.Published,
 		"mute_until": check.MuteUntil,
 		"recipients": check.RecipientIDs,
-		"pulse_url":  fmt.Sprintf("https://updown.io/api/checks/%s/pulse", check.Token),
+		"pulse_url":  check.URL,
 	} {
 		if err := d.Set(k, v); err != nil {
 			return err
