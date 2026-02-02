@@ -116,7 +116,9 @@ func pulseCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(check.Token)
-	d.Set("pulse_url", check.URL)
+	if err := d.Set("pulse_url", check.URL); err != nil {
+		return fmt.Errorf("setting pulse_url: %s", err.Error())
+	}
 
 	return pulseRead(d, meta)
 }
@@ -157,7 +159,9 @@ func pulseRead(d *schema.ResourceData, meta interface{}) error {
 		if err != nil {
 			return fmt.Errorf("recovering full pulse URL via update: %s", err.Error())
 		}
-		d.Set("pulse_url", updated.URL)
+		if err := d.Set("pulse_url", updated.URL); err != nil {
+			return fmt.Errorf("setting pulse_url: %s", err.Error())
+		}
 	}
 
 	return nil

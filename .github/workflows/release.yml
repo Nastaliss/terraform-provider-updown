@@ -73,7 +73,7 @@ jobs:
             digest=$(oras push \
               "${REGISTRY}" \
               --artifact-type "application/vnd.opentofu.provider-target" \
-              "${zip}:application/zip" \
+              "${zip}:archive/zip" \
               --artifact-platform "${os}/${arch}" \
               --format json | jq -r '.reference' | cut -d'@' -f2)
             DIGESTS+=("${REGISTRY}@${digest}")
