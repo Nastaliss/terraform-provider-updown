@@ -83,7 +83,14 @@ jobs:
           echo "Creating multi-platform index with ${#DIGESTS[@]} platforms..."
           oras manifest index create \
             "${REGISTRY}:${VERSION}" \
-            --annotation "artifactType=application/vnd.opentofu.provider" \
             "${DIGESTS[@]}"
+
+          # oras manifest index create (v1.3.0) does not support --artifact-type,
+          # so we patch the manifest to add the top-level artifactType field.
+          # This can be replaced with --artifact-type once oras v1.4.0 is available.
+          echo "Patching index manifest to set top-level artifactType..."
+          oras manifest fetch "${REGISTRY}:${VERSION}" \
+            | jq '. + {"artifactType": "application/vnd.opentofu.provider"}' \
+            | oras manifest push "${REGISTRY}:${VERSION}" -
 
           echo "Published ${REGISTRY}:${VERSION}"
