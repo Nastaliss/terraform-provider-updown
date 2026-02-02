@@ -26,9 +26,10 @@ func New() func() *schema.Provider {
 			},
 
 			ResourcesMap: map[string]*schema.Resource{
-				"updown_check":     checkResource(),
-				"updown_pulse":     pulseResource(),
-				"updown_recipient": recipientResource(),
+				"updown_check":       checkResource(),
+				"updown_pulse":       pulseResource(),
+				"updown_recipient":   recipientResource(),
+				"updown_status_page": statusPageResource(),
 			},
 		}
 	}
