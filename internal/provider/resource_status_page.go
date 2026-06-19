@@ -25,9 +25,9 @@ func statusPageResource() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"checks": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Required:    true,
-				Description: "Ordered list of check tokens to display on the status page.",
+				Description: "Set of check tokens to display on the status page.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -80,7 +80,7 @@ func constructStatusPagePayload(d *schema.ResourceData) updown.StatusPageItem {
 		payload.Visibility = v.(string)
 	}
 
-	checksRaw := d.Get("checks").([]interface{})
+	checksRaw := d.Get("checks").(*schema.Set).List()
 	checks := make([]string, len(checksRaw))
 	for i, v := range checksRaw {
 		checks[i] = v.(string)
