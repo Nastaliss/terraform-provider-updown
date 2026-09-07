@@ -17,7 +17,6 @@ func statusPageResource() *schema.Resource {
 		Read:   statusPageRead,
 		Update: statusPageUpdate,
 		Delete: statusPageDelete,
-		Exists: statusPageExists,
 
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -157,9 +156,4 @@ func statusPageDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	return nil
-}
-
-func statusPageExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	err := statusPageRead(d, meta)
-	return err == nil, err
 }

@@ -2,6 +2,8 @@
 package provider
 
 import (
+	"fmt"
+
 	"github.com/Nastaliss/terraform-provider-updown/internal/updown"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -14,6 +16,7 @@ func New() func() *schema.Provider {
 				"api_key": {
 					Type:        schema.TypeString,
 					Required:    true,
+					Sensitive:   true,
 					DefaultFunc: schema.EnvDefaultFunc("UPDOWN_API_KEY", ""),
 					Description: "API key to use in order to authenticated against updown.io API.",
 				},
@@ -36,5 +39,9 @@ func New() func() *schema.Provider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	return updown.NewClient(d.Get("api_key").(string), nil), nil
+	apiKey := d.Get("api_key").(string)
+	if apiKey == "" {
+		return nil, fmt.Errorf("no API key provided: set the `api_key` argument or the UPDOWN_API_KEY environment variable")
+	}
+	return updown.NewClient(apiKey, nil), nil
 }

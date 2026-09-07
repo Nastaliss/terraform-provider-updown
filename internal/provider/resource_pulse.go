@@ -2,8 +2,9 @@
 package provider
 
 import (
+	"context"
 	"fmt"
-	"strings"
+	"net/http"
 
 	"github.com/Nastaliss/terraform-provider-updown/internal/updown"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -17,10 +18,9 @@ func pulseResource() *schema.Resource {
 		Read:   pulseRead,
 		Delete: pulseDelete,
 		Update: pulseUpdate,
-		Exists: pulseExists,
 
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: pulseImportState,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -60,8 +60,9 @@ func pulseResource() *schema.Resource {
 				},
 			},
 			"pulse_url": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:      schema.TypeString,
+				Computed:  true,
+				Sensitive: true,
 				Description: "The URL to POST heartbeats to. Your scheduled job should POST to this URL on each successful run. " +
 					"Note: the updown.io API redacts the secret key in GET responses. On import, the provider " +
 					"toggles the enabled flag to force a real update and recover the full URL.",
@@ -125,10 +126,16 @@ func pulseCreate(d *schema.ResourceData, meta interface{}) error {
 
 func pulseRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*updown.Client)
-	check, _, err := client.Check.Get(d.Id())
+	check, resp, err := client.Check.Get(d.Id())
 
 	if err != nil {
-		return fmt.Errorf("reading pulse check from the API: %s", err.Error())
+		// The pulse check no longer exists on updown.io: drop it from state so
+		// Terraform plans a recreate instead of failing.
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
+		return fmt.Errorf("reading pulse check from the API: %w", err)
 	}
 
 	// Verify this is actually a pulse check
@@ -149,41 +156,73 @@ func pulseRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	// The API redacts the pulse URL secret key on GET requests. If the state
-	// already holds the full URL (from create or a previous update), preserve it.
-	// On import, the state is empty so we need to recover the full URL.
-	// The updown.io API only returns the unredacted pulse URL when a field
-	// actually changes. Toggle `enabled` to force a real change, capture
-	// the full URL, then restore the original value.
-	currentURL := d.Get("pulse_url").(string)
-	if currentURL == "" || strings.Contains(currentURL, "<redacted>") {
-		payload := updown.CheckItem{
-			Type:         check.Type,
-			Period:       check.Period,
-			Enabled:      !check.Enabled,
-			Published:    check.Published,
-			Alias:        check.Alias,
-			StringMatch:  check.StringMatch,
-			MuteUntil:    check.MuteUntil,
-			RecipientIDs: check.RecipientIDs,
-		}
-		updated, _, err := client.Check.Update(d.Id(), payload)
-		if err != nil {
-			return fmt.Errorf("recovering full pulse URL via update: %s", err.Error())
-		}
+	// Note: pulse_url is intentionally not set here. The API redacts the secret
+	// key on GET, so the value stored on create (or recovered on import) is
+	// preserved. Read must stay side-effect-free, so URL recovery lives in the
+	// importer (pulseImportState), not here.
+	return nil
+}
 
-		// Restore original enabled value.
-		payload.Enabled = check.Enabled
-		if _, _, err := client.Check.Update(d.Id(), payload); err != nil {
-			return fmt.Errorf("restoring enabled flag after pulse URL recovery: %s", err.Error())
-		}
+// pulseImportState recovers the unredacted pulse URL when importing an existing
+// pulse check. The updown.io API only returns the full URL when a field actually
+// changes, so we briefly toggle `enabled` to force a real update, capture the
+// URL, then restore the original value. This runs only during import — never
+// during a plan/refresh — so a plain `terraform plan` never mutates the remote
+// resource.
+func pulseImportState(_ context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	client := meta.(*updown.Client)
 
-		if err := d.Set("pulse_url", updated.URL); err != nil {
-			return fmt.Errorf("setting pulse_url: %s", err.Error())
+	check, resp, err := client.Check.Get(d.Id())
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return nil, fmt.Errorf("pulse check %s does not exist", d.Id())
 		}
+		return nil, fmt.Errorf("reading pulse check from the API: %w", err)
+	}
+	if check.Type != "pulse" {
+		return nil, fmt.Errorf("check %s is not a pulse check (type: %s)", d.Id(), check.Type)
 	}
 
-	return nil
+	url, err := recoverPulseURL(client, d.Id(), check)
+	if err != nil {
+		return nil, err
+	}
+	if err := d.Set("pulse_url", url); err != nil {
+		return nil, fmt.Errorf("setting pulse_url: %w", err)
+	}
+
+	return []*schema.ResourceData{d}, nil
+}
+
+// recoverPulseURL forces the API to return the unredacted pulse URL by toggling
+// the `enabled` flag, then always restores the original state via a deferred
+// update — even if capturing the URL fails — so the check is never stranded in
+// the wrong enabled state.
+func recoverPulseURL(client *updown.Client, token string, check updown.Check) (url string, err error) {
+	payload := updown.CheckItem{
+		Type:         check.Type,
+		Period:       check.Period,
+		Enabled:      !check.Enabled,
+		Published:    check.Published,
+		Alias:        check.Alias,
+		StringMatch:  check.StringMatch,
+		MuteUntil:    check.MuteUntil,
+		RecipientIDs: check.RecipientIDs,
+	}
+
+	defer func() {
+		payload.Enabled = check.Enabled
+		if _, _, rerr := client.Check.Update(token, payload); rerr != nil && err == nil {
+			err = fmt.Errorf("restoring enabled flag after pulse URL recovery: %w", rerr)
+		}
+	}()
+
+	updated, _, err := client.Check.Update(token, payload)
+	if err != nil {
+		return "", fmt.Errorf("recovering full pulse URL via update: %w", err)
+	}
+
+	return updated.URL, nil
 }
 
 func pulseUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -210,9 +249,4 @@ func pulseDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	return nil
-}
-
-func pulseExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	err := pulseRead(d, meta)
-	return err == nil, err
 }

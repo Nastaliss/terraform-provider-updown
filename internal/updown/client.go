@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 )
@@ -113,38 +112,33 @@ func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Requ
 // Do sends an API request and returns the API response. The API response is JSON decoded and stored in the value
 // pointed to by v, or returned as an error if an API error has occurred. If v implements the io.Writer interface,
 // the raw response will be written to v, without attempting to decode it.
-func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
-	response, err := c.client.Do(req)
+func (c *Client) Do(req *http.Request, v interface{}) (resp *http.Response, err error) {
+	resp, err = c.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
+	// Named returns are required so this deferred close can propagate its error
+	// to the caller when the request otherwise succeeded.
 	defer func() {
-		if rerr := response.Body.Close(); err == nil {
+		if rerr := resp.Body.Close(); err == nil {
 			err = rerr
 		}
 	}()
 
-	err = CheckResponse(response)
-	if err != nil {
-		return response, err
+	if err = CheckResponse(resp); err != nil {
+		return resp, err
 	}
 
 	if v != nil {
 		if w, ok := v.(io.Writer); ok {
-			_, err := io.Copy(w, response.Body)
-			if err != nil {
-				return nil, err
-			}
+			_, err = io.Copy(w, resp.Body)
 		} else {
-			err := json.NewDecoder(response.Body).Decode(v)
-			if err != nil {
-				return nil, err
-			}
+			err = json.NewDecoder(resp.Body).Decode(v)
 		}
 	}
 
-	return response, err
+	return resp, err
 }
 
 // CheckResponse checks the API response for errors, and returns them if present. A response is considered an
@@ -156,7 +150,7 @@ func CheckResponse(r *http.Response) error {
 	}
 
 	errorResponse := &ErrorResponse{Response: r}
-	data, err := ioutil.ReadAll(r.Body)
+	data, err := io.ReadAll(r.Body)
 	if err == nil && len(data) > 0 {
 		err := json.Unmarshal(data, errorResponse)
 		if err != nil {

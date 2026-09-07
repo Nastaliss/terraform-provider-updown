@@ -15,7 +15,6 @@ func recipientResource() *schema.Resource {
 		Create: recipientCreate,
 		Read:   recipientRead,
 		Delete: recipientDelete,
-		Exists: recipientExists,
 
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -82,9 +81,13 @@ func recipientRead(d *schema.ResourceData, meta interface{}) error {
 					return err
 				}
 			}
+			return nil
 		}
 	}
 
+	// The recipient no longer exists on updown.io: drop it from state so
+	// Terraform plans a recreate instead of silently keeping stale state.
+	d.SetId("")
 	return nil
 }
 
@@ -101,9 +104,4 @@ func recipientDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	return nil
-}
-
-func recipientExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	err := recipientRead(d, meta)
-	return err == nil, err
 }

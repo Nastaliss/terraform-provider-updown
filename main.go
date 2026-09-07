@@ -20,7 +20,7 @@ func main() {
 	opts := &plugin.ServeOpts{ProviderFunc: provider.New()}
 
 	if debugMode {
-		err := plugin.Debug(context.Background(), "registry.terraform.io/mvisonneau/updown", opts)
+		err := plugin.Debug(context.Background(), "registry.terraform.io/Nastaliss/updown", opts)
 		if err != nil {
 			log.Fatal(err.Error())
 		}

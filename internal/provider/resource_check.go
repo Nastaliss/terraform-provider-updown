@@ -3,6 +3,7 @@ package provider
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/Nastaliss/terraform-provider-updown/internal/updown"
@@ -17,7 +18,6 @@ func checkResource() *schema.Resource {
 		Read:   checkRead,
 		Delete: checkDelete,
 		Update: checkUpdate,
-		Exists: checkExists,
 
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -189,10 +189,21 @@ func checkCreate(d *schema.ResourceData, meta interface{}) error {
 
 func checkRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*updown.Client)
-	check, _, err := client.Check.Get(d.Id())
+	check, resp, err := client.Check.Get(d.Id())
 
 	if err != nil {
+		// The check no longer exists on updown.io: drop it from state so
+		// Terraform plans a recreate instead of failing.
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("reading check from the API: %w", err)
+	}
+
+	// A pulse check is managed by the updown_pulse resource, not updown_check.
+	if check.Type == "pulse" {
+		return fmt.Errorf("check %s is a pulse check, use the updown_pulse resource instead", d.Id())
 	}
 
 	for k, v := range map[string]interface{}{
@@ -241,9 +252,4 @@ func checkDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	return nil
-}
-
-func checkExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	err := checkRead(d, meta)
-	return err == nil, err
 }
